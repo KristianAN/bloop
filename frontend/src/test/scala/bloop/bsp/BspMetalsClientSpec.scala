@@ -22,6 +22,8 @@ import bloop.logging.RecordingLogger
 import bloop.task.Task
 import bloop.util.TestProject
 import bloop.util.TestUtil
+import bloop.Compiler
+import java.nio.file.Files
 
 object LocalBspMetalsClientSpec extends BspMetalsClientSpec(BspProtocol.Local)
 object TcpBspMetalsClientSpec extends BspMetalsClientSpec(BspProtocol.Tcp)
@@ -31,7 +33,7 @@ class BspMetalsClientSpec(
 ) extends BspBaseSuite {
   private val testedScalaVersion = BuildInfo.scalaVersion
   private val semanticdbVersion = BuildTestInfo.semanticdbVersion
-  private val javaSemanticdbVersion = "0.5.7"
+  private val javaSemanticdbVersion = "0.10.0"
 
   private val semanticdbJar = s"semanticdb-scalac_$testedScalaVersion-$semanticdbVersion.jar"
 
@@ -57,7 +59,8 @@ class BspMetalsClientSpec(
         clientClassesRootDir = None,
         semanticdbVersion = Some(semanticdbVersion),
         supportedScalaVersions = Some(List(testedScalaVersion)),
-        javaSemanticdbVersion = Some(javaSemanticdbVersion)
+        javaSemanticdbVersion = Some(javaSemanticdbVersion),
+        enableBestEffortMode = None
       )
 
       loadBspState(workspace, projects, logger, "Metals", bloopExtraParams = extraParams) { state =>
@@ -80,7 +83,17 @@ class BspMetalsClientSpec(
         assertJavacOptions(
           state,
           `A`,
-          """|-Xplugin:semanticdb -sourceroot:$workspace -targetroot:javac-classes-directory
+          """|-J--add-exports
+             |-Jjdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED
+             |-J--add-exports
+             |-Jjdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED
+             |-J--add-exports
+             |-Jjdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED
+             |-J--add-exports
+             |-Jjdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED
+             |-J--add-exports
+             |-Jjdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED
+             |-Xplugin:semanticdb -sourceroot:$workspace -targetroot:javac-classes-directory
              |""".stripMargin
         )
       }
@@ -113,7 +126,8 @@ class BspMetalsClientSpec(
         clientClassesRootDir = None,
         semanticdbVersion = Some(semanticdbVersion),
         supportedScalaVersions = Some(List(testedScalaVersion)),
-        javaSemanticdbVersion = Some(javaSemanticdbVersion)
+        javaSemanticdbVersion = Some(javaSemanticdbVersion),
+        enableBestEffortMode = None
       )
 
       loadBspState(workspace, projects, logger, "Metals", bloopExtraParams = extraParams) { state =>
@@ -157,7 +171,8 @@ class BspMetalsClientSpec(
         clientClassesRootDir = None,
         semanticdbVersion = Some(semanticdbVersion),
         supportedScalaVersions = Some(List(testedScalaVersion)),
-        javaSemanticdbVersion = Some(javaSemanticdbVersion)
+        javaSemanticdbVersion = Some(javaSemanticdbVersion),
+        enableBestEffortMode = None
       )
 
       loadBspState(workspace, projects, logger, "Metals", bloopExtraParams = extraParams) { state =>
@@ -181,13 +196,14 @@ class BspMetalsClientSpec(
 
   test("should save workspace settings with cached build") {
     TestUtil.withinWorkspace { workspace =>
-      val javaSemanticdbVersion = "0.5.7"
+      val javaSemanticdbVersion = "0.10.0"
       val extraParams = BloopExtraBuildParams(
         ownsBuildFiles = None,
         clientClassesRootDir = None,
         semanticdbVersion = Some(semanticdbVersion),
         supportedScalaVersions = Some(List(testedScalaVersion)),
-        javaSemanticdbVersion = Some(javaSemanticdbVersion)
+        javaSemanticdbVersion = Some(javaSemanticdbVersion),
+        enableBestEffortMode = None
       )
       val `A` = TestProject(workspace, "A", Nil)
       val projects = List(`A`)
@@ -240,7 +256,8 @@ class BspMetalsClientSpec(
             clientClassesRootDir = None,
             semanticdbVersion = Some(semanticdbVersion),
             supportedScalaVersions = Some(List(testedScalaVersion)),
-            javaSemanticdbVersion = Some(javaSemanticdbVersion)
+            javaSemanticdbVersion = Some(javaSemanticdbVersion),
+            enableBestEffortMode = None
           )
           val bspLogger = new BspClientLogger(logger)
           def bspCommand() = createBspCommand(configDir)
@@ -263,7 +280,7 @@ class BspMetalsClientSpec(
         }
       }
 
-      val javaNormalClientsVersion = "0.5.7"
+      val javaNormalClientsVersion = "0.10.0"
       val javaMetalsVersion = "0.1.0"
       val normalClientsVersion = "4.2.0"
       val metalsClientVersion = "4.1.11"
@@ -302,7 +319,7 @@ class BspMetalsClientSpec(
       WorkspaceSettings.writeToFile(
         configDir,
         WorkspaceSettings
-          .fromSemanticdbSettings("0.5.7", semanticdbVersion, List(testedScalaVersion)),
+          .fromSemanticdbSettings("0.10.0", semanticdbVersion, List(testedScalaVersion)),
         logger
       )
       loadBspState(workspace, projects, logger) { state =>
@@ -336,7 +353,7 @@ class BspMetalsClientSpec(
       WorkspaceSettings.writeToFile(
         configDir,
         WorkspaceSettings
-          .fromSemanticdbSettings("0.5.7", semanticdbVersion, List(testedScalaVersion)),
+          .fromSemanticdbSettings("0.10.0", semanticdbVersion, List(testedScalaVersion)),
         logger
       )
       loadBspState(workspace, projects, logger) { state =>
@@ -357,7 +374,7 @@ class BspMetalsClientSpec(
       WorkspaceSettings.writeToFile(
         configDir,
         WorkspaceSettings
-          .fromSemanticdbSettings("0.5.7", semanticdbVersion, List(testedScalaVersion)),
+          .fromSemanticdbSettings("0.10.0", semanticdbVersion, List(testedScalaVersion)),
         logger
       )
       loadBspState(workspace, projects, logger) { state =>
@@ -384,7 +401,7 @@ class BspMetalsClientSpec(
       val logger = new RecordingLogger(ansiCodesSupported = false)
       WorkspaceSettings.writeToFile(
         configDir,
-        WorkspaceSettings.fromSemanticdbSettings("0.5.7", "4.3.0", List()),
+        WorkspaceSettings.fromSemanticdbSettings("0.10.0", "4.3.0", List()),
         logger
       )
       loadBspState(workspace, projects, logger) { state =>
@@ -441,7 +458,7 @@ class BspMetalsClientSpec(
       val logger = new RecordingLogger(ansiCodesSupported = false)
       WorkspaceSettings.writeToFile(
         configDir,
-        WorkspaceSettings.fromSemanticdbSettings("0.5.7", "4.3.0", List()),
+        WorkspaceSettings.fromSemanticdbSettings("0.10.0", "4.3.0", List()),
         logger
       )
       loadBspState(workspace, projects, logger) { state =>
@@ -465,7 +482,8 @@ class BspMetalsClientSpec(
         clientClassesRootDir = None,
         semanticdbVersion = Some(semanticdbVersion),
         supportedScalaVersions = Some(List(testedScalaVersion)),
-        javaSemanticdbVersion = Some(javaSemanticdbVersion)
+        javaSemanticdbVersion = Some(javaSemanticdbVersion),
+        enableBestEffortMode = None
       )
       loadBspState(workspace, projects, logger, "Metals", bloopExtraParams = extraParams) { state =>
         val compiledState = state.compile(`A`).toTestState
@@ -492,13 +510,182 @@ class BspMetalsClientSpec(
         clientClassesRootDir = None,
         semanticdbVersion = Some(semanticdbVersion),
         supportedScalaVersions = Some(List(testedScalaVersion)),
-        javaSemanticdbVersion = Some(javaSemanticdbVersion)
+        javaSemanticdbVersion = Some(javaSemanticdbVersion),
+        None
       )
       loadBspState(workspace, projects, logger, "Metals", bloopExtraParams = extraParams) { state =>
         val compiledState = state.compile(`A`).toTestState
         assert(compiledState.status == ExitStatus.Ok)
         assertSemanticdbFileFor("Foo.scala", compiledState)
         assertSemanticdbFileFor("Bar.java", compiledState)
+      }
+    }
+  }
+
+  val bestEffortScalaVersion = "3.5.0-RC1"
+  test("best-effort: compile dependency of failing project and produce semanticdb and betasty") {
+    TestUtil.withinWorkspace { workspace =>
+      val `A` = TestProject(
+        workspace,
+        "A",
+        dummyBestEffortSources,
+        scalaVersion = Some(bestEffortScalaVersion)
+      )
+      val `B` = TestProject(
+        workspace,
+        "B",
+        dummyBestEffortDepSources,
+        directDependencies = List(`A`),
+        scalaVersion = Some(bestEffortScalaVersion)
+      )
+      val projects = List(`A`, `B`)
+      TestProject.populateWorkspace(workspace, projects)
+      val logger = new RecordingLogger(ansiCodesSupported = false)
+      val extraParams = BloopExtraBuildParams(
+        ownsBuildFiles = None,
+        clientClassesRootDir = None,
+        semanticdbVersion = Some(semanticdbVersion),
+        supportedScalaVersions = Some(List(bestEffortScalaVersion)),
+        javaSemanticdbVersion = None,
+        enableBestEffortMode = Some(true)
+      )
+      loadBspState(workspace, projects, logger, "Metals", bloopExtraParams = extraParams) { state =>
+        val compiledStateA = state.compile(`A`, arguments = Some(List("--best-effort"))).toTestState
+        assert(compiledStateA.status == ExitStatus.CompilationError)
+        assertSemanticdbFileFor("TypeError.scala", compiledStateA, "A")
+        assertBetastyFile("TypeError.betasty", compiledStateA, "A")
+        val compiledStateB = state.compile(`B`, arguments = Some(List("--best-effort"))).toTestState
+        assert(compiledStateB.status == ExitStatus.CompilationError)
+        assertSemanticdbFileFor("TypeErrorDependency.scala", compiledStateB, "B")
+        assertBetastyFile("TypeErrorDependency.betasty", compiledStateB, "B")
+
+        val projectB = compiledStateB.build.getProjectFor("B").get
+        compiledStateB.results.all(projectB) match {
+          case Compiler.Result.Failed(problemsPerPhase, crash, _, _, _) =>
+            assert(problemsPerPhase == List.empty) // No new errors should be found
+            assert(crash == None)
+          case result => fail(s"Result ${result} is not classified as failure")
+        }
+      }
+    }
+  }
+
+  test("best-effort: regain artifacts after disconnecting and reconnecting to the client") {
+    TestUtil.withinWorkspace { workspace =>
+      val `A` = TestProject(
+        workspace,
+        "A",
+        dummyBestEffortSources,
+        scalaVersion = Some(bestEffortScalaVersion)
+      )
+      val `B` = TestProject(
+        workspace,
+        "B",
+        dummyBestEffortDepSources,
+        directDependencies = List(`A`),
+        scalaVersion = Some(bestEffortScalaVersion)
+      )
+      val projects = List(`A`, `B`)
+      TestProject.populateWorkspace(workspace, projects)
+      val logger = new RecordingLogger(ansiCodesSupported = false)
+      val extraParams = BloopExtraBuildParams(
+        ownsBuildFiles = None,
+        clientClassesRootDir = None,
+        semanticdbVersion = Some(semanticdbVersion),
+        supportedScalaVersions = Some(List(bestEffortScalaVersion)),
+        javaSemanticdbVersion = None,
+        enableBestEffortMode = Some(true)
+      )
+      loadBspState(workspace, projects, logger, "Metals", bloopExtraParams = extraParams) { state =>
+        val compiledStateA = state.compile(`A`, arguments = Some(List("--best-effort"))).toTestState
+        val compiledStateB = state.compile(`B`, arguments = Some(List("--best-effort"))).toTestState
+      }
+      loadBspState(
+        workspace,
+        projects,
+        logger,
+        "Metals reconnected",
+        bloopExtraParams = extraParams
+      ) { state =>
+        val compiledStateA = state.compile(`A`, arguments = Some(List("--best-effort"))).toTestState
+        assertSemanticdbFileFor("TypeError.scala", compiledStateA, "A")
+        assertBetastyFile("TypeError.betasty", compiledStateA, "A")
+        val compiledStateB = state.compile(`B`, arguments = Some(List("--best-effort"))).toTestState
+        assertSemanticdbFileFor("TypeErrorDependency.scala", compiledStateB, "B")
+        assertBetastyFile("TypeErrorDependency.betasty", compiledStateB, "B")
+        state.findBuildTarget(`A`)
+      }
+    }
+  }
+
+  test("best-effort: correctly manage betasty files when compiling correct and failing projects") {
+    val initFile =
+      """/ErrorFile.scala
+        |object A
+        |object B
+        |""".stripMargin
+    val updatedFile1WithError =
+      """|object A
+         |//object B
+         |error
+         |object C
+         |""".stripMargin
+    val updatedFile2WithoutError =
+      """|//object A
+         |object B
+         |//error
+         |object C
+         |""".stripMargin
+    val updatedFile3WithError =
+      """|//object A
+         |object B
+         |error
+         |//object C
+         |""".stripMargin
+
+    TestUtil.withinWorkspace { workspace =>
+      val `A` = TestProject(
+        workspace,
+        "A",
+        List(initFile),
+        scalaVersion = Some(bestEffortScalaVersion)
+      )
+      def updateProject(content: String) =
+        Files.write(`A`.config.sources.head.resolve("ErrorFile.scala"), content.getBytes())
+      val projects = List(`A`)
+      TestProject.populateWorkspace(workspace, projects)
+      val logger = new RecordingLogger(ansiCodesSupported = false)
+      val extraParams = BloopExtraBuildParams(
+        ownsBuildFiles = None,
+        clientClassesRootDir = None,
+        semanticdbVersion = Some(semanticdbVersion),
+        supportedScalaVersions = Some(List(bestEffortScalaVersion)),
+        javaSemanticdbVersion = None,
+        enableBestEffortMode = Some(true)
+      )
+      loadBspState(workspace, projects, logger, "Metals", bloopExtraParams = extraParams) { state =>
+        val compiledState = state.compile(`A`, arguments = Some(List("--best-effort"))).toTestState
+        assertBetastyFile("A.betasty", compiledState, "A")
+        assertBetastyFile("B.betasty", compiledState, "A")
+        assertCompilationFile("A.class", compiledState, "A")
+        updateProject(updatedFile1WithError)
+        val compiledState2 = state.compile(`A`, arguments = Some(List("--best-effort"))).toTestState
+        assertBetastyFile("A.betasty", compiledState2, "A")
+        assertNoBetastyFile("B.betasty", compiledState2, "A")
+        assertBetastyFile("C.betasty", compiledState2, "A")
+        assertNoCompilationFile("A.class", compiledState, "A")
+        updateProject(updatedFile2WithoutError)
+        val compiledState3 = state.compile(`A`, arguments = Some(List("--best-effort"))).toTestState
+        assertNoBetastyFile("A.betasty", compiledState3, "A")
+        assertBetastyFile("B.betasty", compiledState3, "A")
+        assertBetastyFile("C.betasty", compiledState3, "A")
+        assertCompilationFile("B.class", compiledState, "A")
+        updateProject(updatedFile3WithError)
+        val compiledState4 = state.compile(`A`, arguments = Some(List("--best-effort"))).toTestState
+        assertNoBetastyFile("A.betasty", compiledState4, "A")
+        assertBetastyFile("B.betasty", compiledState4, "A")
+        assertNoBetastyFile("C.betasty", compiledState4, "A")
+        assertNoCompilationFile("B.class", compiledState, "A")
       }
     }
   }
@@ -516,7 +703,8 @@ class BspMetalsClientSpec(
         clientClassesRootDir = None,
         semanticdbVersion = Some(semanticdbVersion),
         supportedScalaVersions = Some(List(testedScalaVersion)),
-        javaSemanticdbVersion = Some(javaSemanticdbVersion)
+        javaSemanticdbVersion = Some(javaSemanticdbVersion),
+        None
       )
 
       loadBspBuildFromResources(projectName, workspace, logger, "Metals", extraParams) { build =>
@@ -541,7 +729,7 @@ class BspMetalsClientSpec(
              |""".stripMargin
         )
         val javacOptions = state.javacOptions(project)._2.items.flatMap(_.options)
-        val javaSemanticDBJar = "semanticdb-javac-0.5.7.jar"
+        val javaSemanticDBJar = "semanticdb-javac-0.10.0.jar"
         assert(
           javacOptions(javacOptions.indexOf("-processorpath") + 1).contains(javaSemanticDBJar)
         )
@@ -578,6 +766,19 @@ class BspMetalsClientSpec(
 
   private val dummyFooScalaAndBarJavaSources = dummyFooScalaSources ++ dummyBarJavaSources
 
+  private val dummyBestEffortSources = List(
+    """/TypeError.scala
+      |object TypeError:
+      |  val num: Int = ""
+      |""".stripMargin
+  )
+  private val dummyBestEffortDepSources = List(
+    """/TypeErrorDependency.scala
+      |object TypeErrorDependency:
+      |  def num(): Int = TypeError.num
+      |""".stripMargin
+  )
+
   private def assertSemanticdbFileForProject(
       sourceFileName: String,
       state: TestState,
@@ -597,26 +798,72 @@ class BspMetalsClientSpec(
     classesDir.resolve(s"META-INF/semanticdb/src/$sourceFileName.semanticdb")
   }
 
-  private def semanticdbFile(sourceFileName: String, state: TestState) = {
-    val projectA = state.build.getProjectFor("A").get
+  private def semanticdbFile(sourceFileName: String, state: TestState, projectName: String) = {
+    val projectA = state.build.getProjectFor(projectName).get
     val classesDir = state.client.getUniqueClassesDirFor(projectA, forceGeneration = true)
     val sourcePath = if (sourceFileName.startsWith("/")) sourceFileName else s"/$sourceFileName"
-    classesDir.resolve(s"META-INF/semanticdb/A/src/$sourcePath.semanticdb")
+    classesDir.resolve(s"META-INF/semanticdb/$projectName/src/$sourcePath.semanticdb")
+  }
+
+  private def assertCompilationFile(
+      expectedFilePath: String,
+      state: TestState,
+      projectName: String
+  ): Unit = {
+    val project = state.build.getProjectFor(projectName).get
+    val classesDir = state.client.getUniqueClassesDirFor(project, forceGeneration = true)
+    assertIsFile(classesDir.resolve(expectedFilePath))
+  }
+
+  private def assertNoCompilationFile(
+      expectedFilePath: String,
+      state: TestState,
+      projectName: String
+  ): Unit = {
+    val project = state.build.getProjectFor(projectName).get
+    val classesDir = state.client.getUniqueClassesDirFor(project, forceGeneration = true)
+    assertNotFile(classesDir.resolve(expectedFilePath))
+  }
+
+  private def assertBetastyFile(
+      expectedBetastyRelativePath: String,
+      state: TestState,
+      projectName: String
+  ): Unit = {
+    assertCompilationFile(
+      s"META-INF/best-effort/$expectedBetastyRelativePath",
+      state,
+      projectName
+    )
+  }
+
+  private def assertNoBetastyFile(
+      expectedBetastyRelativePath: String,
+      state: TestState,
+      projectName: String
+  ): Unit = {
+    assertNoCompilationFile(
+      s"META-INF/best-effort/$expectedBetastyRelativePath",
+      state,
+      projectName
+    )
   }
 
   private def assertSemanticdbFileFor(
       sourceFileName: String,
-      state: TestState
+      state: TestState,
+      projectName: String = "A"
   ): Unit = {
-    val file = semanticdbFile(sourceFileName, state)
+    val file = semanticdbFile(sourceFileName, state, projectName)
     assertIsFile(file)
   }
 
   private def assertNoSemanticdbFileFor(
       sourceFileName: String,
-      state: TestState
+      state: TestState,
+      projectName: String = "A"
   ): Unit = {
-    val file = semanticdbFile(sourceFileName, state)
+    val file = semanticdbFile(sourceFileName, state, projectName)
     assertNotFile(file)
   }
 
@@ -646,10 +893,9 @@ class BspMetalsClientSpec(
       .replace("$workspace", workspaceDir)
       .splitLines
       .filterNot(_.isEmpty)
-      .sorted
       .mkString(lineSeparator)
     assertNoDiff(
-      javacOptions.sorted.mkString(lineSeparator),
+      javacOptions.mkString(lineSeparator),
       expectedOptions
     )
   }

@@ -74,7 +74,9 @@ import bloop.util.JavaRuntime
 
 import com.github.plokhotnyuk.jsoniter_scala.core._
 import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import jsonrpc4s._
+import com.github.plokhotnyuk.jsoniter_scala.core.readFromArray
 import monix.execution.Cancelable
 import monix.execution.CancelablePromise
 import monix.execution.Scheduler
@@ -275,6 +277,7 @@ final class BloopBspServices(
       } else {
         val javaSemanticDBVersion = extraBuildParams.flatMap(_.javaSemanticdbVersion)
         val scalaSemanticDBVersion = extraBuildParams.flatMap(_.semanticdbVersion)
+        val enableBestEffortMode = extraBuildParams.flatMap(_.enableBestEffortMode)
         val supportedScalaVersions =
           if (scalaSemanticDBVersion.nonEmpty)
             extraBuildParams.map(_.supportedScalaVersions.toList.flatten)
@@ -286,7 +289,8 @@ final class BloopBspServices(
               scalaSemanticDBVersion,
               supportedScalaVersions,
               currentRefreshProjectsCommand,
-              currentTraceSettings
+              currentTraceSettings,
+              enableBestEffortMode
             )
           )
         else None
@@ -432,6 +436,7 @@ final class BloopBspServices(
     }
 
     val isPipeline = compileArgs.exists(_ == "--pipeline")
+    val bestEffortAllowed = compileArgs.exists(_ == "--best-effort")
     def compile(projects: List[Project]): Task[State] = {
       val config = ReporterConfig.defaultFormat.copy(reverseOrder = false)
 
@@ -481,6 +486,7 @@ final class BloopBspServices(
         dag,
         createReporter,
         isPipeline,
+        bestEffortAllowed,
         cancelCompilation,
         store,
         logger
@@ -506,7 +512,7 @@ final class BloopBspServices(
             case Compiler.Result.GlobalError(problem, _) => List(problem)
             case Compiler.Result.Cancelled(problems, elapsed, _) =>
               List(reportError(p, problems, elapsed))
-            case f @ Compiler.Result.Failed(problems, t, elapsed, _) =>
+            case f @ Compiler.Result.Failed(problems, t, elapsed, _, _) =>
               previouslyFailedCompilations.put(p, f)
               val acc = List(reportError(p, problems, elapsed))
               t match {
@@ -707,15 +713,54 @@ final class BloopBspServices(
   }
 
   def test(params: bsp.TestParams): BspEndpointResponse[bsp.TestResult] = {
+    def scalaTestSuitesByKind(kind: String): bsp.ScalaTestSuites =
+      kind match {
+        case bsp.TestParamsDataKind.ScalaTest =>
+          val scalaTestParams: Option[bsp.ScalaTestParams] =
+            params.data.map(raw => readFromArray[bsp.ScalaTestParams](raw.value))
+
+          val suites: List[bsp.ScalaTestSuiteSelection] =
+            scalaTestParams
+              .flatMap(
+                _.testClasses
+                  .map(_.flatMap(item => item.classes))
+                  .map(_.map(cls => bsp.ScalaTestSuiteSelection.apply(cls, Nil)))
+              )
+              .getOrElse(Nil)
+          bsp.ScalaTestSuites(suites, Nil, Nil)
+
+        case bsp.TestParamsDataKind.ScalaTestSuites =>
+          val scalaTestSuites: Option[List[bsp.ScalaTestSuiteSelection]] = params.data
+            .map { raw =>
+              readFromArray[List[String]](raw.value)(JsonCodecMaker.make[List[String]])
+            }
+            .map(_.map(className => bsp.ScalaTestSuiteSelection(className, Nil)))
+          bsp.ScalaTestSuites(scalaTestSuites.getOrElse(Nil), Nil, Nil)
+
+        case bsp.TestParamsDataKind.ScalaTestSuitesSelection =>
+          params.data
+            .map(raw => readFromArray[bsp.ScalaTestSuites](raw.value))
+            .getOrElse(bsp.ScalaTestSuites(Nil, Nil, Nil))
+
+        case _ => bsp.ScalaTestSuites(Nil, Nil, Nil)
+      }
+
     def test(project: Project, state: State): Task[Tasks.TestRuns] = {
-      val testFilter = TestInternals.parseFilters(Nil) // Don't support test only for now
+      val scalaTestSuites: bsp.ScalaTestSuites = params.dataKind match {
+        case None => bsp.ScalaTestSuites(Nil, Nil, Nil)
+        case Some(kind) => scalaTestSuitesByKind(kind)
+      }
+
+      val testFilter =
+        TestInternals.parseFilters(Nil) // Does not handle filtering of tests, yet
+
       val handler = new LoggingEventHandler(state.logger)
       Tasks.test(
         state,
         List(project),
         Nil,
         testFilter,
-        bsp.ScalaTestSuites(Nil, Nil, Nil),
+        scalaTestSuites,
         handler,
         mode = RunMode.Normal
       )
