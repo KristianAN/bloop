@@ -4,7 +4,7 @@ import java.io.File
 
 import scala.util.Try
 
-import ch.epfl.scala.bsp
+import ch.epfl.scala.bsp4j
 
 import bloop.io.AbsolutePath
 import bloop.logging.Logger
@@ -63,7 +63,7 @@ final class ObservedReporter(
 
   override def processEndCompilation(
       previousSuccessfulProblems: List[ProblemPerPhase],
-      code: bsp.StatusCode,
+      code: bsp4j.StatusCode,
       clientClassesDir: Option[AbsolutePath],
       analysisOut: Option[AbsolutePath]
   ): Unit = {

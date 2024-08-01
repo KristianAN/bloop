@@ -6,7 +6,7 @@ import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
 import scala.util.Try
 
-import ch.epfl.scala.bsp
+import ch.epfl.scala.bsp4j
 
 import bloop.io.AbsolutePath
 import bloop.logging.Logger
@@ -178,7 +178,7 @@ abstract class Reporter(
 
   override def processEndCompilation(
       previousSuccessfulProblems: List[ProblemPerPhase],
-      code: bsp.StatusCode,
+      code: bsp4j.StatusCode,
       clientClassesDir: Option[AbsolutePath],
       analysisOut: Option[AbsolutePath]
   ): Unit = {
@@ -276,7 +276,7 @@ trait ZincReporter extends xsbti.Reporter with ConfigurableReporter {
    */
   def processEndCompilation(
       previousSuccessfulProblems: List[ProblemPerPhase],
-      code: bsp.StatusCode,
+      code: bsp4j.StatusCode,
       clientClassesDir: Option[AbsolutePath],
       analysisOut: Option[AbsolutePath]
   ): Unit
@@ -297,7 +297,7 @@ trait ZincReporter extends xsbti.Reporter with ConfigurableReporter {
    * (e.g. same analysis as before).
    *
    * @param durationMs The time it took to complete the incremental compiler cycle.
-   * @param result The result of the incremental cycle. We don't use `bsp.StatusCode` because the
+   * @param result The result of the incremental cycle. We don't use `bsp4j.StatusCode` because the
    *               bloop backend, where this method is used, should not depend on bsp4j.
    */
   def reportEndIncrementalCycle(durationMs: Long, result: Try[Unit]): Unit

@@ -4,7 +4,7 @@ import java.io.File
 
 import scala.util.Try
 
-import ch.epfl.scala.bsp
+import ch.epfl.scala.bsp4j
 
 import xsbti.VirtualFile
 
@@ -41,5 +41,5 @@ object ReporterAction {
 
   final case object ReportCancelledCompilation extends ReporterAction
 
-  final case class ProcessEndCompilation(code: bsp.StatusCode) extends ReporterAction
+  final case class ProcessEndCompilation(code: bsp4j.StatusCode) extends ReporterAction
 }

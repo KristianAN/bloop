@@ -337,7 +337,7 @@ object Compiler {
     // We don't need nanosecond granularity, we're happy with milliseconds
     def elapsed: Long = ((System.nanoTime() - start).toDouble / 1e6).toLong
 
-    import ch.epfl.scala.bsp
+    import ch.epfl.scala.bsp4j
     import scala.util.{Success, Failure}
     val reporter = compileInputs.reporter
 
@@ -356,7 +356,7 @@ object Compiler {
       previousProblemsFromResult(compileInputs.previousCompilerResult, previousSuccessfulProblems)
 
     def handleCancellation: Compiler.Result = {
-      val cancelledCode = bsp.StatusCode.Cancelled
+      val cancelledCode = bsp4j.StatusCode.CANCELLED
       reporter.processEndCompilation(previousSuccessfulProblems, cancelledCode, None, None)
       reporter.reportEndCompilation()
       val backgroundTasks =
@@ -387,7 +387,7 @@ object Compiler {
         if (newHash == previousHash) {
           reporter.processEndCompilation(
             problems,
-            bsp.StatusCode.Error,
+            bsp4j.StatusCode.ERROR,
             None,
             None
           )
@@ -473,7 +473,7 @@ object Compiler {
           // Report end of compilation only after we have reported all warnings from previous runs
           val sourcesWithFatal = reporter.getSourceFilesWithFatalWarnings
           val reportedFatalWarnings = isFatalWarningsEnabled && sourcesWithFatal.nonEmpty
-          val code = if (reportedFatalWarnings) bsp.StatusCode.Error else bsp.StatusCode.Ok
+          val code = if (reportedFatalWarnings) bsp4j.StatusCode.ERROR else bsp4j.StatusCode.OK
 
           // Process the end of compilation, but wait for reporting until client tasks run
           reporter.processEndCompilation(
@@ -692,7 +692,7 @@ object Compiler {
 
         case Failure(_: xsbti.CompileCancelled) => handleCancellation
         case Failure(cause) =>
-          val errorCode = bsp.StatusCode.Error
+          val errorCode = bsp4j.StatusCode.ERROR
           reporter.processEndCompilation(previousSuccessfulProblems, errorCode, None, None)
           reporter.reportEndCompilation()
 
@@ -893,7 +893,7 @@ object Compiler {
 
     reporter.processEndCompilation(
       previousSuccessfulProblems,
-      ch.epfl.scala.bsp.StatusCode.Error,
+      ch.epfl.scala.bsp4j.StatusCode.ERROR,
       None,
       None
     )

@@ -3,7 +3,7 @@ package bloop
 import java.io.File
 import java.util.concurrent.atomic.AtomicReference
 
-import scala.jdk.CollectionConverters._
+import scala.collection.JavaConverters._
 
 import bloop.io.AbsolutePath
 import bloop.task.Task
@@ -36,7 +36,8 @@ private[bloop] class ClientClassesObserver(val classesDir: AbsolutePath) {
     if (prev != null && classesSubject.size > 0) {
       Task {
         val previousStamps = prev.readStamps.getAllProductStamps
-        analysis.readStamps.getAllProductStamps.asScala.iterator.collect {
+        val stamps = analysis.readStamps.getAllProductStamps.asScala
+        stamps.iterator.collect {
           case (vf, stamp) if isClassFile(vf) && isNewer(stamp, previousStamps.get(vf)) =>
             getFullyQualifiedClassName(vf)
         }.toSeq

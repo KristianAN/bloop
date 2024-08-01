@@ -2,7 +2,7 @@ package bloop.logging
 
 import java.io.File
 
-import ch.epfl.scala.bsp
+import ch.epfl.scala.bsp4j
 
 import bloop.io.AbsolutePath
 import bloop.reporter.Problem
@@ -25,9 +25,9 @@ object CompilationEvent {
    */
   case class StartCompilation(
       projectName: String,
-      projectUri: bsp.Uri,
+      projectUri: String,
       msg: String,
-      taskId: bsp.TaskId
+      taskId: bsp4j.TaskId
   ) extends CompilationEvent
 
   /**
@@ -45,8 +45,8 @@ object CompilationEvent {
    */
   case class ProgressCompilation(
       projectName: String,
-      projectUri: bsp.Uri,
-      taskId: bsp.TaskId,
+      projectUri: String,
+      taskId: bsp4j.TaskId,
       progress: Long,
       total: Long,
       percentage: Long
@@ -76,10 +76,10 @@ object CompilationEvent {
    */
   case class EndCompilation(
       projectName: String,
-      projectUri: bsp.Uri,
-      taskId: bsp.TaskId,
+      projectUri: String,
+      taskId: bsp4j.TaskId,
       problems: Seq[Problem],
-      code: bsp.StatusCode,
+      code: bsp4j.StatusCode,
       isNoOp: Boolean,
       isLastCycle: Boolean,
       clientDir: Option[AbsolutePath],
@@ -95,7 +95,7 @@ object CompilationEvent {
    *              the problem URI.
    */
   case class Diagnostic(
-      projectUri: bsp.Uri,
+      projectUri: String,
       problem: xsbti.Problem,
       clear: Boolean
   ) extends CompilationEvent
@@ -107,7 +107,7 @@ object CompilationEvent {
    * @param file The file we're cleaning all diagnostics at.
    */
   case class NoDiagnostic(
-      projectUri: bsp.Uri,
+      projectUri: String,
       file: File
   ) extends CompilationEvent
 }
