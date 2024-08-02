@@ -13,12 +13,12 @@
           inherit system;
           overlays = [
             (f: p: {
-              sbt = p.sbt.override { jre = p.graalvm-ce; };
+              sbt = p.sbt.override { jre = p.temurin-bin-21; };
             })
           ];
         };
 
-        jdk = pkgs.graalvm-ce;
+        jdk = pkgs.temurin-bin-21;
 
         jvmInputs = with pkgs; [
           scalafmt

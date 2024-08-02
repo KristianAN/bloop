@@ -12,7 +12,10 @@ import bloop.task.Task
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.github.plokhotnyuk.jsoniter_scala.core.readFromArray
 import com.github.plokhotnyuk.jsoniter_scala.core.writeToArray
-import jsonrpc4s._
+import org.eclipse.lsp4j.jsonrpc.messages.Message
+import org.eclipse.lsp4j.jsonrpc.messages.ResponseMessage
+import org.eclipse.lsp4j.jsonrpc.messages.ResponseError
+import org.eclipse.lsp4j.jsonrpc.Endpoint
 import monix.execution.Ack
 import monix.execution.Callback
 import monix.execution.Cancelable
@@ -20,6 +23,24 @@ import monix.execution.atomic.Atomic
 import monix.execution.atomic.AtomicInt
 import monix.reactive.Observer
 import scribe.LoggerSupport
+import org.eclipse.lsp4j.jsonrpc.messages.NotificationMessage
+
+// Interop stuff: TODO move somewhere
+case class RawJson(
+    value: Array[Byte]
+)
+
+sealed trait RpcResponse[T]
+
+final case class RpcSuccess[T](
+    value: T,
+    underlying: ResponseMessage
+) extends RpcResponse[T]
+
+final case class RpcFailure[T](
+    methodName: String,
+    underlying: ResponseError
+)
 
 /**
  * A copy of `jsonrpc4s.RpcClient` that is uses `bloop.task.Task`
@@ -28,32 +49,38 @@ import scribe.LoggerSupport
  */
 class BloopLanguageClient(
     out: Observer[Message],
-    logger: LoggerSupport
+    logger: LoggerSupport[Unit]
 ) {
 
+  type RequestId = Either[String, Number]
+
   protected val counter: AtomicInt = Atomic(1)
-  protected val activeServerRequests = TrieMap.empty[RequestId, Callback[Throwable, Response]]
+  protected val activeServerRequests = TrieMap.empty[RequestId, Callback[Throwable, Message]]
 
   protected val notificationsLock = new Object()
   protected def toJson[R: JsonValueCodec](r: R): RawJson = RawJson(writeToArray(r))
 
   def notify[A](
-      endpoint: Endpoint[A, Unit],
+      endpoint: Endpoint,
       params: A
   ): Future[Ack] = notify(endpoint, Some(params), Map.empty)
 
   def notify[A](
-      endpoint: Endpoint[A, Unit],
+      endpoint: Endpoint,
       params: Option[A]
   ): Future[Ack] = notify(endpoint, params, Map.empty)
 
   def notify[A](
-      endpoint: Endpoint[A, Unit],
+      method: String,
       params: Option[A],
-      headers: Map[String, String]
+      headers: Map[
+        String,
+        String
+      ] // LSP4J: NotificationMessage in lsp4jsonrpc does not have header field
   ): Future[Ack] = {
-    import endpoint.codecA
-    val msg = Notification(endpoint.method, params.map(toJson(_)), headers)
+    val msg = new NotificationMessage()
+    params.map(msg.setParams)
+    msg.setMethod(method)
 
     // Send notifications in the order they are sent by the caller
     notificationsLock.synchronized {
@@ -62,21 +89,20 @@ class BloopLanguageClient(
   }
 
   def request[A, B](
-      endpoint: Endpoint[A, B],
+      endpoint: Endpoint,
       params: A
   ): Task[RpcResponse[B]] = request(endpoint, Some(params), Map.empty)
 
   def request[A, B](
-      endpoint: Endpoint[A, B],
+      endpoint: Endpoint,
       params: Option[A]
   ): Task[RpcResponse[B]] = request(endpoint, params, Map.empty)
 
   def request[A, B](
-      endpoint: Endpoint[A, B],
+      endpoint: Endpoint,
       params: Option[A],
       headers: Map[String, String]
   ): Task[RpcResponse[B]] = {
-    import endpoint.{codecA, codecB}
     val reqId = RequestId(counter.incrementAndGet())
     val response = Task.create[Response] { (s, cb) =>
       val scheduled = s.scheduleOnce(Duration(0, "s")) {

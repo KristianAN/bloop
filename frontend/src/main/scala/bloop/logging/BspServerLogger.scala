@@ -5,11 +5,10 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import scala.collection.JavaConverters._
 
-import ch.epfl.scala.bsp
-import ch.epfl.scala.bsp.BuildTargetIdentifier
-import ch.epfl.scala.bsp.DiagnosticSeverity
-import ch.epfl.scala.bsp.Uri
-import ch.epfl.scala.bsp.endpoints.Build
+import ch.epfl.scala.{bsp4j => bsp}
+import ch.epfl.scala.bsp4j.BuildTargetIdentifier
+import ch.epfl.scala.bsp4j.DiagnosticSeverity
+import ch.epfl.scala.bsp4j.endpoints.Build
 
 import bloop.bsp.BloopLanguageClient
 import bloop.engine.State

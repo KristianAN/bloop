@@ -18,7 +18,7 @@ import com.microsoft.java.debug.core.protocol.Events.DebugEvent
 import com.microsoft.java.debug.core.protocol.JsonUtils
 import com.microsoft.java.debug.core.protocol.Messages
 import com.microsoft.java.debug.core.protocol.Messages.ProtocolMessage
-import jsonrpc4s.LowLevelMessage
+import org.eclipse.lsp4j.jsonrpc.LowLevelMessage
 import jsonrpc4s.LowLevelMessageWriter
 import monix.execution.Ack
 import monix.execution.Scheduler
@@ -133,6 +133,8 @@ private[dap] final class DebugAdapterProxy(
 
 private[dap] object DebugAdapterProxy {
   def apply(socket: Socket): DebugAdapterProxy = {
+
+    val inputStream = StreamMessageProducer
     val in = LowLevelMessage
       .fromInputStream(socket.getInputStream(), null)
       .liftByOperator(Parser)

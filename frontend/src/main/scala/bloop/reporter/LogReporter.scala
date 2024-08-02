@@ -1,7 +1,7 @@
 package bloop.reporter
 import java.io.File
 
-import ch.epfl.scala.bsp
+import ch.epfl.scala.{bsp4j => bsp}
 
 import bloop.data.Project
 import bloop.io.AbsolutePath
@@ -85,7 +85,7 @@ final class LogReporter(
       analysisOut: Option[AbsolutePath]
   ): Unit = {
     code match {
-      case bsp.StatusCode.Ok =>
+      case bsp.StatusCode.OK =>
         val eligibleProblemsPerFile = Reporter
           .groupProblemsByFile(previousSuccessfulProblems)
           .filterKeys(f => !compilingFiles.contains(f))

@@ -5,7 +5,7 @@ import java.io.File
 import scala.collection.concurrent.TrieMap
 import scala.util.Try
 
-import ch.epfl.scala.bsp
+import ch.epfl.scala.{bsp4j => bsp}
 
 import bloop.data.Project
 import bloop.io.AbsolutePath
@@ -138,7 +138,7 @@ final class BspProjectReporter(
   ): CompilationEvent.EndCompilation = {
     // Get final status code, or status from next end cycle, or error if failed to get status code
     val statusCode =
-      finalCompilationStatusCode.orElse(statusForNextEndCycle).getOrElse(bsp.StatusCode.Error)
+      finalCompilationStatusCode.orElse(statusForNextEndCycle).getOrElse(bsp.StatusCode.ERROR)
 
     if (!inputs.isLastCycle) reportRemainingProblems(false, Map.empty)
     else reportRemainingProblems(reportAllPreviousProblems, inputs.previousSuccessfulProblems)
@@ -265,9 +265,9 @@ final class BspProjectReporter(
 
   override def reportEndIncrementalCycle(durationMs: Long, result: Try[Unit]): Unit = {
     val codeRightAfterCycle = result match {
-      case scala.util.Success(()) => bsp.StatusCode.Ok
-      case scala.util.Failure(_: xsbti.CompileCancelled) => bsp.StatusCode.Cancelled
-      case scala.util.Failure(_) => bsp.StatusCode.Error
+      case scala.util.Success(()) => bsp.StatusCode.OK
+      case scala.util.Failure(_: xsbti.CompileCancelled) => bsp.StatusCode.CANCELLED
+      case scala.util.Failure(_) => bsp.StatusCode.ERROR
     }
 
     statusForNextEndCycle = Some(codeRightAfterCycle)

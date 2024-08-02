@@ -15,7 +15,7 @@ object Dependencies {
   val zincVersion = "1.10.1"
 
   val bspVersion = "2.1.1"
-
+  val scribeVersion = "3.15.0"
   val scalazVersion = "7.3.8"
   val lmVersion = "1.10.1"
   val configDirsVersion = "26"
@@ -115,4 +115,6 @@ object Dependencies {
   val jnaPlatform = "net.java.dev.jna" % "jna-platform" % jnaVersion
   val asm = "org.ow2.asm" % "asm" % asmVersion
   val asmUtil = "org.ow2.asm" % "asm-util" % asmVersion
+
+  val scribe = "com.outr" %% "scribe" % scribeVersion
 }
